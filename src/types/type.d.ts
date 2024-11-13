@@ -1,7 +1,8 @@
 import { Request } from 'express'
 import { User } from '~/models/User'
-import { TokenPayload } from './models/requests/User.requests'
+import { TokenPayload } from '../models/requests/User.requests'
 
+// Khai báo thêm thuộc tính user cho request
 declare module 'express' {
   interface Request {
     user?: User

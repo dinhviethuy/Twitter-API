@@ -40,4 +40,6 @@ export const USERS_MESSAGE = {
   VERIFY_FORGOT_PASSWORD_SUCCESSFUL: 'Verify forgot password successful',
   IN_VALID_FORGOT_PASSWORD_TOKEN: 'In valid forgot password token',
   RESET_PASSWORD_SUCCESSFUL: 'Reset password successful',
+  GET_ME_SUCCESSFUL: 'Get me successful',
+  USER_NOT_VERIFIED: 'User not verified'
 } as const

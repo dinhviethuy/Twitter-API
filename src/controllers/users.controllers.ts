@@ -5,14 +5,23 @@ import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '~/constants/enum'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { USERS_MESSAGE } from '~/constants/messages'
-import { ForgotPasswordReqBody, LoginReqBody, LogoutReqBody, RegisterReqBody, ResetPasswordReqBody, TokenPayload, VerifyEmailReqBody, VerifyForgotPasswordTokenReqBody } from '~/models/requests/User.requests'
+import {
+  ForgotPasswordReqBody,
+  LoginReqBody,
+  LogoutReqBody,
+  RegisterReqBody,
+  ResetPasswordReqBody,
+  TokenPayload,
+  VerifyEmailReqBody,
+  VerifyForgotPasswordTokenReqBody
+} from '~/models/requests/User.requests'
 import User from '~/models/schemas/User.schema'
 import databaseService from '~/services/database.services'
 
 export const loginController = async (req: Request<ParamsDictionary, any, LoginReqBody>, res: Response) => {
-  const user = req.user as User
+  const user = req.user as User // Lấy ra user từ request
   const user_id = user._id as ObjectId
-  const result = await usersServices.login(user_id.toString())
+  const result = await usersServices.login({ user_id: user_id.toString(), verify: user.verify })
   res.json({
     message: USERS_MESSAGE.LOGIN_SUCCESSFUL,
     result
@@ -40,8 +49,12 @@ export const logoutController = async (req: Request<ParamsDictionary, any, Logou
   return
 }
 
-export const verifyEmailController = async (req: Request<ParamsDictionary, any, VerifyEmailReqBody>, res: Response, next: NextFunction) => {
-  const { user_id } = req.decoded_email_verify_token as TokenPayload
+export const verifyEmailController = async (
+  req: Request<ParamsDictionary, any, VerifyEmailReqBody>, // Sử dụng VerifyEmailReqBody
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_email_verify_token as TokenPayload // Lấy ra user_id từ decoded_email_verify_token
   const user = await databaseService.users.findOne({
     _id: new ObjectId(user_id)
   })
@@ -69,8 +82,8 @@ export const verifyEmailController = async (req: Request<ParamsDictionary, any, 
 }
 
 export const resendVerifyEmailController = async (req: Request, res: Response, next: NextFunction) => {
-  const {user_id} = req.decoded_authorization as TokenPayload
-  const user = await databaseService.users.findOne({_id: new ObjectId(user_id)})
+  const { user_id } = req.decoded_authorization as TokenPayload // Lấy ra user_id từ decoded_authorization
+  const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
   if (!user) {
     res.status(HTTP_STATUS.NOT_FOUND).json({
       message: USERS_MESSAGE.USER_NOT_FOUND
@@ -83,29 +96,60 @@ export const resendVerifyEmailController = async (req: Request, res: Response, n
     })
     return
   }
+  // Gửi lại email verify
   const result = await usersServices.resendVerifyEmail(user_id)
   res.json(result)
   return
 }
 
-export const forgotPasswordController = async (req: Request<ParamsDictionary, any, ForgotPasswordReqBody>, res: Response, next: NextFunction) => {
-  const { _id } = req.user as User
-  const result = await usersServices.forgotPassword((_id as ObjectId).toString())
+export const forgotPasswordController = async (
+  req: Request<ParamsDictionary, any, ForgotPasswordReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { _id, verify } = req.user as User // Lấy ra _id và verify từ user
+  const result = await usersServices.forgotPassword({ user_id: (_id as ObjectId).toString(), verify: verify })
+  // Trả về kết quả
   res.json(result)
   return
 }
 
-export const verifyForgotPasswordTokenController = async (req: Request<ParamsDictionary, any, VerifyForgotPasswordTokenReqBody>, res: Response, next: NextFunction) => {
+export const verifyForgotPasswordTokenController = async (
+  req: Request<ParamsDictionary, any, VerifyForgotPasswordTokenReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
   res.json({
     message: USERS_MESSAGE.VERIFY_FORGOT_PASSWORD_SUCCESSFUL
   })
   return
 }
 
-export const resetPasswordController = async (req: Request<ParamsDictionary, any, ResetPasswordReqBody>, res: Response, next: NextFunction) => {
-  const { user_id } = req.decoded_forgot_password_token as TokenPayload
-  const { password } = req.body
-  const result = await usersServices.resetPassword(user_id, password)
+export const resetPasswordController = async (
+  req: Request<ParamsDictionary, any, ResetPasswordReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_forgot_password_token as TokenPayload // Lấy ra user_id từ decoded_forgot_password_token
+  const { password } = req.body // Lấy ra password từ request
+  const result = await usersServices.resetPassword(user_id, password) // Gọi hàm resetPassword
   res.json(result)
+  return
+}
+
+export const getMeController = async (req: Request, res: Response, next: NextFunction) => {
+  const { user_id } = req.decoded_authorization as TokenPayload // Lấy ra user_id từ decoded_authorization
+  const user = await usersServices.getMe(user_id) // Gọi hàm getMe
+  res.json({
+    message: USERS_MESSAGE.GET_ME_SUCCESSFUL,
+    user
+  })
+  return
+}
+
+export const updateMeController = async (req: Request, res: Response, next: NextFunction) => {
+  res.json({
+    message: 'Update me successful'
+  })
   return
 }

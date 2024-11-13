@@ -3,20 +3,25 @@ import usersRouter from './routes/users.routes'
 import databaseService from './services/database.services'
 import { defaultErrorHandler } from './middlewares/errors.middlewares'
 
-// connect database
+// Kết nối tới database mongo
 databaseService.connect()
 
-// create express app
+// Tạo server với express
 const app = express()
-const port = 3001
 
+// Tạo biến port từ biến môi trường
+const port = process.env.DB_PORT
+
+// expes.json() để parse request body từ client dưới dạng json, dùng cho POST, PUT, PATCH, DELETE, GET
 app.use(express.json())
+
+// Đăng ký route handler cho host/users
 app.use('/users', usersRouter)
 
-// tạo wrapper cho các route handler
+// Tạo middleware xử lý lỗi mặc định
 app.use(defaultErrorHandler)
 
-// start server
+// Lắng nghe server trên port
 app.listen(port, () => {
   console.log(`Running on port ${port}`)
 })

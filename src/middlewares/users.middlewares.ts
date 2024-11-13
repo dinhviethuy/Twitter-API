@@ -9,8 +9,10 @@ import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { JsonWebTokenError } from 'jsonwebtoken'
 import { capitalize } from 'lodash'
-import { Request } from 'express'
+import { NextFunction, Request, Response } from 'express'
 import { ObjectId } from 'mongodb'
+import { TokenPayload } from '~/models/requests/User.requests'
+import { UserVerifyStatus } from '~/constants/enum'
 
 const passwordSchema: ParamSchema = {
   notEmpty: {
@@ -64,8 +66,8 @@ const confirmPasswordSchema: ParamSchema = {
   },
   custom: {
     errorMessage: USERS_MESSAGE.CONFIRM_PASSWORD_DOES_NOT_MATCH,
-    options: (value, { req }) => {
-      if (value !== req.body.password) {
+    options: (value, { req }) => { // Kiểm tra confirm_password có trùng với password không
+      if (value !== req.body.password) { // Nếu không trùng thì trả về lỗi
         throw new Error(USERS_MESSAGE.CONFIRM_PASSWORD_DOES_NOT_MATCH)
       }
       return true
@@ -84,8 +86,11 @@ const forgotPasswordTokenSchema: ParamSchema = {
         })
       }
       try {
-        const decoded_forgot_password_token = await verifyToken({ token: value, secretOnPublicKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string })
-        const {user_id} = decoded_forgot_password_token
+        const decoded_forgot_password_token = await verifyToken({
+          token: value,
+          secretOnPublicKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string
+        })
+        const { user_id } = decoded_forgot_password_token
         const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
         if (user === null) {
           throw new ErrorWithStatus({
@@ -99,9 +104,9 @@ const forgotPasswordTokenSchema: ParamSchema = {
             status: HTTP_STATUS.UNAUTHORIZED
           })
         }
-        req.decoded_forgot_password_token = decoded_forgot_password_token
+        req.decoded_forgot_password_token = decoded_forgot_password_token // Gán decoded_forgot_password_token vào req
       } catch (error) {
-        if (error instanceof JsonWebTokenError) {
+        if (error instanceof JsonWebTokenError) { // instanceof để kiểm tra error có phải là JsonWebTokenError không
           throw new ErrorWithStatus({
             message: capitalize(error.message),
             status: HTTP_STATUS.UNAUTHORIZED
@@ -131,7 +136,7 @@ export const loginValidator = validate(
             if (user === null) {
               throw new Error(USERS_MESSAGE.EMAIL_OR_PASSWORD_IS_INCORRECT)
             }
-            req.user = user
+            req.user = user // Gán user vào req.user
             return true
           }
         }
@@ -150,7 +155,7 @@ export const loginValidator = validate(
           },
           errorMessage: USERS_MESSAGE.PASSWORD_LENGTH_MUST_BE_FROM_6_TO_50
         },
-        isStrongPassword: {
+        isStrongPassword: { // Kiểm tra password có đủ mạnh không
           errorMessage: USERS_MESSAGE.PASSWORD_MUST_BE_STRONG,
           options: {
             minLength: 6,
@@ -205,8 +210,8 @@ export const registerValidator = validate(
       date_of_birth: {
         isISO8601: {
           options: {
-            strict: true,
-            strictSeparator: true
+            strict: true, // Kiểm tra chuẩn ISO8601
+            strictSeparator: true // Kiểm tra dấu phân cách
           },
           errorMessage: USERS_MESSAGE.DATE_OF_BIRTH_MUST_BE_ISO8601
         }
@@ -230,8 +235,11 @@ export const accessTokenValidator = validate(
               })
             }
             try {
-              const decoded_authorization = await verifyToken({ token: access_token, secretOnPublicKey: process.env.JWT_SECRET_ACCESS_TOKEN as string });
-              (req as Request).decoded_authorization = decoded_authorization
+              const decoded_authorization = await verifyToken({
+                token: access_token,
+                secretOnPublicKey: process.env.JWT_SECRET_ACCESS_TOKEN as string
+              })
+                ; (req as Request).decoded_authorization = decoded_authorization // Gán decoded_authorization vào req
             } catch (error) {
               throw new ErrorWithStatus({
                 message: capitalize((error as JsonWebTokenError).message),
@@ -243,6 +251,7 @@ export const accessTokenValidator = validate(
         }
       }
     },
+    // Áp dụng cho headers
     ['headers']
   )
 )
@@ -252,8 +261,8 @@ export const refreshTokenValidator = validate(
     {
       refresh_token: {
         trim: true,
-        custom: {
-          options: async (value: string, { req }) => {
+        custom: { // custom validator để kiểm tra refresh_token có tồn tại trong database không
+          options: async (value: string, { req }) => { // Kiểm tra refresh_token có tồn tại trong database không
             if (!value) {
               throw new ErrorWithStatus({
                 message: USERS_MESSAGE.EMAIL_VERIFY_TOKEN_IS_REQUIRED,
@@ -261,9 +270,10 @@ export const refreshTokenValidator = validate(
               })
             }
             try {
+              // Promise.all để chờ cả 2 hàm verifyToken và tìm refresh_token trong database chạy xong
               const [decoded_refresh_token, refresh_token] = await Promise.all([
                 verifyToken({ token: value, secretOnPublicKey: process.env.JWT_SECRET_REFRESH_TOKEN as string }),
-                databaseService.refreshTokens.findOne({ token: value })
+                databaseService.refreshTokens.findOne({ token: value }) // Tìm refresh_token trong database
               ])
               if (refresh_token === null) {
                 throw new ErrorWithStatus({
@@ -271,9 +281,9 @@ export const refreshTokenValidator = validate(
                   status: HTTP_STATUS.UNAUTHORIZED
                 })
               }
-              ;(req as Request).decoded_refresh_token = decoded_refresh_token
+              ; (req as Request).decoded_refresh_token = decoded_refresh_token // Gán decoded_refresh_token vào req
             } catch (error) {
-              if (error instanceof JsonWebTokenError) {
+              if (error instanceof JsonWebTokenError) { // instanceof để kiểm tra error có phải là JsonWebTokenError không
                 throw new ErrorWithStatus({
                   message: capitalize(error.message),
                   status: HTTP_STATUS.UNAUTHORIZED
@@ -304,11 +314,16 @@ export const emailVerifyTokenValidator = validate(
               })
             }
             try {
-              const decoded_email_verify_token = await verifyToken({ token: value, secretOnPublicKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string });
-              (req as Request).decoded_email_verify_token = decoded_email_verify_token
+              // Verify email_verify_token
+              const decoded_email_verify_token = await verifyToken({
+                token: value,
+                secretOnPublicKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
+              })
+                ; (req as Request).decoded_email_verify_token = decoded_email_verify_token // Gán decoded_email_verify_token vào req
             } catch (error) {
               throw new ErrorWithStatus({
-                message: capitalize((error as JsonWebTokenError).message),
+                // Nếu có lỗi thì trả về lỗi
+                message: capitalize((error as JsonWebTokenError).message), // Chuyển đổi message lỗi thành chữ hoa
                 status: HTTP_STATUS.UNAUTHORIZED
               })
             }
@@ -324,25 +339,31 @@ export const emailVerifyTokenValidator = validate(
 export const forgotPasswordValidator = validate(
   checkSchema(
     {
-      email :{
+      email: {
         isEmail: {
           errorMessage: USERS_MESSAGE.EMAIL_IS_INVALID
         },
         trim: true,
+        // custom validator để kiểm tra email có tồn tại trong database không
         custom: {
+          // Kiểm tra xem email có tồn tại trong database không
           options: async (value, { req }) => {
+            // Tìm user theo email
             const user = await databaseService.users.findOne({
               email: value
             })
+            // Nếu không tìm thấy user thì trả về lỗi
             if (user === null) {
               throw new Error(USERS_MESSAGE.USER_NOT_FOUND)
             }
+            // Gán user vào req.user
             req.user = user
             return true
           }
         }
       }
-    }, ['body']
+    },
+    ['body']
   )
 )
 
@@ -350,16 +371,38 @@ export const verifyForgotPasswordTokenValidator = validate(
   checkSchema(
     {
       forgot_password_token: forgotPasswordTokenSchema
-    }, ['body']
+    },
+    ['body']
   )
 )
 
+// Dùng để kiểm tra token khi reset password
 export const resetPasswordValidator = validate(
+  // Kiểm tra các điều kiện của password, confirm_password và forgot_password_token
   checkSchema(
     {
       password: passwordSchema,
       confirm_password: confirmPasswordSchema,
       forgot_password_token: forgotPasswordTokenSchema
-    }, ['body']
+    },
+    // Áp dụng cho body
+    ['body']
   )
 )
+
+// Dùng để kiểm tra user đã verify email chưa
+export const verifiedUserValidator = (req: Request, res: Response, next: NextFunction) => {
+  // Lấy ra trạng thái verify của user
+  const { verify } = req.decoded_authorization as TokenPayload
+  if (verify !== UserVerifyStatus.Verified) {
+    // Nếu user chưa verify email thì trả về lỗi
+    return next(
+      new ErrorWithStatus({
+        message: USERS_MESSAGE.USER_NOT_VERIFIED,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    )
+  }
+  // Nếu đã verify thì chuyển đến middleware tiếp theo
+  next()
+}

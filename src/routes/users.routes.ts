@@ -1,5 +1,17 @@
-import { Router } from 'express'
-import { verifyEmailController, loginController, logoutController, registerController, resendVerifyEmailController, forgotPasswordController, verifyForgotPasswordTokenController, resetPasswordController } from '~/controllers/users.controllers'
+import { RequestHandler, Router } from 'express'
+import { update } from 'lodash'
+import {
+  verifyEmailController,
+  loginController,
+  logoutController,
+  registerController,
+  resendVerifyEmailController,
+  forgotPasswordController,
+  verifyForgotPasswordTokenController,
+  resetPasswordController,
+  getMeController,
+  updateMeController
+} from '~/controllers/users.controllers'
 import {
   accessTokenValidator,
   emailVerifyTokenValidator,
@@ -8,10 +20,12 @@ import {
   refreshTokenValidator,
   registerValidator,
   resetPasswordValidator,
+  verifiedUserValidator,
   verifyForgotPasswordTokenValidator
 } from '~/middlewares/users.middlewares'
 import { wrapRequestHandler } from '~/utils/handlers'
 
+// Tạo router cho users
 const usersRouter = Router()
 
 /**
@@ -20,6 +34,7 @@ const usersRouter = Router()
  * Method: POST
  * Body: { email: string, password: string }
  */
+// Đăng ký middleware cho route /login
 usersRouter.post('/login', loginValidator, wrapRequestHandler(loginController))
 /**
  * Description: Register a new user
@@ -69,7 +84,11 @@ usersRouter.post('/forgot-password', forgotPasswordValidator, wrapRequestHandler
  * Method: POST
  * Body: { forgot_password_token: string }
  */
-usersRouter.post('/verify-forgot-password', verifyForgotPasswordTokenValidator, wrapRequestHandler(verifyForgotPasswordTokenController))
+usersRouter.post(
+  '/verify-forgot-password',
+  verifyForgotPasswordTokenValidator,
+  wrapRequestHandler(verifyForgotPasswordTokenController)
+)
 
 /**
  * Description: Reset password
@@ -78,5 +97,22 @@ usersRouter.post('/verify-forgot-password', verifyForgotPasswordTokenValidator, 
  * Body: { password: string, confirm_password: string, forgot_password_token: string }
  */
 usersRouter.post('/reset-password', resetPasswordValidator, wrapRequestHandler(resetPasswordController))
+
+/**
+ * Description: Get my profile
+ * Path: /me
+ * Method: GET
+ * Headers: { Authorization: Bearer token }
+ */
+usersRouter.get('/me', accessTokenValidator, wrapRequestHandler(getMeController))
+
+/**
+ * Description: Update my profile
+ * Path: /me
+ * Method: PATCH
+ * Headers: { Authorization: Bearer token }
+ * Body: UserSchema
+ */
+usersRouter.patch('/me', accessTokenValidator, verifiedUserValidator, wrapRequestHandler(updateMeController))
 
 export default usersRouter

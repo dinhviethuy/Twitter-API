@@ -4,6 +4,7 @@ import { TokenPayload } from '~/models/requests/User.requests'
 
 config()
 
+// Hàm tạo token
 export const signToken = ({
   payload,
   privateKey,
@@ -16,6 +17,7 @@ export const signToken = ({
   options?: SignOptions
 }) => {
   return new Promise<string>((resolve, reject) => {
+    // Tạo token
     jwt.sign(payload, privateKey, options, (error, token) => {
       if (error) {
         throw reject(error)
@@ -25,14 +27,10 @@ export const signToken = ({
   })
 }
 
-export const verifyToken = ({
-  token,
-  secretOnPublicKey
-}: {
-  token: string
-  secretOnPublicKey: string
-}) => {
+// Hàm verify token
+export const verifyToken = ({ token, secretOnPublicKey }: { token: string; secretOnPublicKey: string }) => {
   return new Promise<TokenPayload>((resolve, reject) => {
+    // Verify token
     jwt.verify(token, secretOnPublicKey, (error, decoded) => {
       if (error) {
         throw reject(error)
