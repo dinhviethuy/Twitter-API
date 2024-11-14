@@ -166,7 +166,6 @@ usersRouter.patch(
  * Path: /:username
  * Method: GET
  */
-
 usersRouter.get('/:username', wrapRequestHandler(getProfileController))
 
 /**

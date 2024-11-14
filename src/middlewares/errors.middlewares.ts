@@ -11,10 +11,12 @@ export const defaultErrorHandler = (err: any, req: Request, res: Response, next:
     res.status(err.status).json(omit(err, 'status'))
     return
   }
+
   Object.getOwnPropertyNames(err).forEach((key) => {
     // dùng Object.getOwnPropertyNames để lấy ra các key của err
     Object.defineProperty(err, key, { enumerable: true }) // dùng Object.defineProperty để đặt thuộc tính enumerable của key là true
   })
+
   // Trả về lỗi 500 và message lỗi
   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
     message: err.message,

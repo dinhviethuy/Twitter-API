@@ -12,13 +12,16 @@ const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}
 class DatabaseService {
   // Khai báo biến client để kết nối đến MongoDB
   private client: MongoClient
+
   // Khai báo biến db để thao tác với database
   private db: Db
+
   // Khởi tạo client và db
   constructor() {
     this.client = new MongoClient(uri)
     this.db = this.client.db(process.env.DB_NAME)
   }
+
   // Kết nối đến MongoDB
   async connect() {
     try {
@@ -31,16 +34,19 @@ class DatabaseService {
       throw error
     }
   }
+
   // Dùng để lấy collection users từ database để thao tác với collection này
   get users(): Collection<User> {
     // Trả về collection users
     return this.db.collection(process.env.DB_COLLECTION_USERS as string)
   }
+
   // Dùng để lấy collection refresh_tokens từ database để thao tác với collection này
   get refreshTokens(): Collection<RefreshToken> {
     // Trả về collection refresh_tokens
     return this.db.collection(process.env.DB_COLLECTION_REFRESH_TOKENS as string)
   }
+
   //follow user collection
   get followers(): Collection<Follower> {
     return this.db.collection(process.env.DB_COLLECTION_FOLLOWERS as string)

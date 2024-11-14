@@ -264,7 +264,7 @@ export const accessTokenValidator = validate(
                 token: access_token,
                 secretOnPublicKey: process.env.JWT_SECRET_ACCESS_TOKEN as string
               })
-              ;(req as Request).decoded_authorization = decoded_authorization // Gán decoded_authorization vào req
+                ; (req as Request).decoded_authorization = decoded_authorization // Gán decoded_authorization vào req
             } catch (error) {
               throw new ErrorWithStatus({
                 message: capitalize((error as JsonWebTokenError).message),
@@ -308,7 +308,7 @@ export const refreshTokenValidator = validate(
                   status: HTTP_STATUS.UNAUTHORIZED
                 })
               }
-              ;(req as Request).decoded_refresh_token = decoded_refresh_token // Gán decoded_refresh_token vào req
+              ; (req as Request).decoded_refresh_token = decoded_refresh_token // Gán decoded_refresh_token vào req
             } catch (error) {
               if (error instanceof JsonWebTokenError) {
                 // instanceof để kiểm tra error có phải là JsonWebTokenError không
@@ -347,7 +347,7 @@ export const emailVerifyTokenValidator = validate(
                 token: value,
                 secretOnPublicKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
               })
-              ;(req as Request).decoded_email_verify_token = decoded_email_verify_token // Gán decoded_email_verify_token vào req
+                ; (req as Request).decoded_email_verify_token = decoded_email_verify_token // Gán decoded_email_verify_token vào req
             } catch (error) {
               throw new ErrorWithStatus({
                 // Nếu có lỗi thì trả về lỗi
@@ -422,6 +422,8 @@ export const resetPasswordValidator = validate(
 export const verifiedUserValidator = (req: Request, res: Response, next: NextFunction) => {
   // Lấy ra trạng thái verify của user
   const { verify } = req.decoded_authorization as TokenPayload
+
+  // Nếu user chưa verify email thì
   if (verify !== UserVerifyStatus.Verified) {
     // Nếu user chưa verify email thì trả về lỗi
     return next(
@@ -431,6 +433,7 @@ export const verifiedUserValidator = (req: Request, res: Response, next: NextFun
       })
     )
   }
+
   // Nếu đã verify thì chuyển đến middleware tiếp theo
   next()
 }

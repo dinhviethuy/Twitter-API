@@ -34,6 +34,7 @@ class UsersService {
       }
     })
   }
+
   // Tạo refresh_token
   private signRefreshToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return signToken({
@@ -48,6 +49,7 @@ class UsersService {
       }
     })
   }
+
   // Tạo email_verify_token
   private signEmailVerifyToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return signToken({
@@ -62,6 +64,7 @@ class UsersService {
       }
     })
   }
+
   // Tạo forgot_password_token
   private signForgotPasswordToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return signToken({
@@ -76,10 +79,12 @@ class UsersService {
       }
     })
   }
+
   // Tạo access_token và refresh_token
   private signAccessAndRefreshToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return Promise.all([this.signAccessToken({ user_id, verify }), this.signRefreshToken({ user_id, verify })])
   }
+
   // Đăng nhập bằng google
   private async getOauthGoogleToken(code: string) {
     const body = {
@@ -99,6 +104,7 @@ class UsersService {
       access_token: string
     }
   }
+
   // Lấy thông tin user từ google
   private async getGoogleUserInfo(access_token: string, id_token: string) {
     const { data } = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
@@ -122,6 +128,7 @@ class UsersService {
       locale: string
     }
   }
+
   // Đăng ký tài khoản
   async register(payload: RegisterReqBody) {
     const user_id = new ObjectId()
@@ -157,12 +164,14 @@ class UsersService {
       refresh_token
     }
   }
+
   // kiểm tra email tồn tại
   async checkEmailExist(email: string) {
     // Kiểm tra email tồn tại trong database users hay không
     const user = await databaseServices.users.findOne({ email })
     return Boolean(user)
   }
+
   // Login
   async login({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken({ user_id, verify })
@@ -176,6 +185,7 @@ class UsersService {
       refresh_token
     }
   }
+
   // logout
   async logout(refresh_token: string) {
     // Xóa refresh_token khỏi database
@@ -185,6 +195,7 @@ class UsersService {
       message: USERS_MESSAGE.LOGOUT_SUCCESSFUL
     }
   }
+
   // Verify email
   async verifyEmail(user_id: string) {
     const [token] = await Promise.all([
@@ -219,6 +230,7 @@ class UsersService {
       refresh_token
     }
   }
+
   async resendVerifyEmail(user_id: string) {
     const email_verify_token = await this.signEmailVerifyToken({ user_id, verify: UserVerifyStatus.Unverified })
     console.log('Resend email: ', email_verify_token)
@@ -239,6 +251,7 @@ class UsersService {
     }
   }
 
+  // Forgot password
   async forgotPassword({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     const forgot_password_token = await this.signForgotPasswordToken({ user_id, verify })
     await databaseServices.users.updateOne(
@@ -258,6 +271,7 @@ class UsersService {
     }
   }
 
+  // reset password
   async resetPassword(user_id: string, password: string) {
     await databaseServices.users.updateOne(
       {
@@ -275,6 +289,8 @@ class UsersService {
       message: USERS_MESSAGE.RESET_PASSWORD_SUCCESSFUL
     }
   }
+
+  // get me
   async getMe(user_id: string) {
     const user = await databaseServices.users.findOne(
       { _id: new ObjectId(user_id) },
@@ -315,6 +331,7 @@ class UsersService {
     )
     return user
   }
+
   // get profile by username
   async getProfile(username: string) {
     // Tìm user theo username
@@ -341,6 +358,7 @@ class UsersService {
     }
     return user
   }
+
   // Follow a user
   async follow(user_id: string, follow_user_id: string) {
     // Kiểm tra user_id đã follow follow_user_id chưa
@@ -376,6 +394,7 @@ class UsersService {
       message: USERS_MESSAGE.UNFOLLOW_SUCCESSFUL
     }
   }
+
   // change password
   async changePassword(user_id: string, new_password: string, old_password: string) {
     if (new_password === old_password) {
@@ -400,6 +419,7 @@ class UsersService {
       message: USERS_MESSAGE.CHANGE_PASSWORD_SUCCESSFUL
     }
   }
+
   // refresh token
   async refreshToken(user_id: string, verify: UserVerifyStatus, refresh_token_old: string) {
     const [access_token, refresh_token] = await Promise.all([
@@ -415,7 +435,8 @@ class UsersService {
       refresh_token
     }
   }
-  //oAuth Google
+
+  //oauth Google
   async oauthGoogle(code: string) {
     const { id_token, access_token } = await this.getOauthGoogleToken(code)
     const userInfo = await this.getGoogleUserInfo(access_token, id_token)
