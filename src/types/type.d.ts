@@ -12,3 +12,12 @@ declare module 'express' {
     decoded_forgot_password_token?: TokenPayload
   }
 }
+
+// Khai báo thêm thuộc tính username cho params
+declare module 'express-serve-static-core' {
+  interface ParamsDictionary {
+    username: string
+    follow_user_id: string
+  }
+}
+

@@ -2,6 +2,7 @@ import { Collection, Db, MongoClient } from 'mongodb'
 import { config } from 'dotenv'
 import User from '~/models/schemas/User.schema'
 import RefreshToken from '~/models/schemas/RefreshToken.schema'
+import Follower from '~/models/schemas/Follower.schema'
 
 config()
 // Khai báo biến uri kết nối đến MongoDB
@@ -39,6 +40,10 @@ class DatabaseService {
   get refreshTokens(): Collection<RefreshToken> {
     // Trả về collection refresh_tokens
     return this.db.collection(process.env.DB_COLLECTION_REFRESH_TOKENS as string)
+  }
+  //follow user collection
+  get followers(): Collection<Follower> {
+    return this.db.collection(process.env.DB_COLLECTION_FOLLOWERS as string)
   }
 }
 

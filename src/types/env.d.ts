@@ -17,5 +17,6 @@ declare namespace NodeJS {
     FORGOT_PASSWORD_TOKEN_EXPIRES_IN: string
     DB_COLLECTION_REFRESH_TOKENS: string
     DB_PORT: number
+    DB_COLLECTION_FOLLOWERS: string
   }
 }

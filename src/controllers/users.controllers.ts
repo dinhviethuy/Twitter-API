@@ -1,22 +1,27 @@
-import usersServices from '../services/users.services'
-import { Request, Response } from 'express'
-import { NextFunction, ParamsDictionary } from 'express-serve-static-core'
+import { ChangePasswordReqBody, RefreshTokenReqBody } from './../models/requests/User.requests';
+import { NextFunction, Request, Response } from 'express'
+import { ParamsDictionary, RequestHandler } from 'express-serve-static-core'
 import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '~/constants/enum'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { USERS_MESSAGE } from '~/constants/messages'
 import {
+  FollowReqBody,
   ForgotPasswordReqBody,
+  GetProfileReqParams,
   LoginReqBody,
   LogoutReqBody,
   RegisterReqBody,
   ResetPasswordReqBody,
   TokenPayload,
+  UnfollowReqParams,
+  UpdateMeReqBody,
   VerifyEmailReqBody,
   VerifyForgotPasswordTokenReqBody
 } from '~/models/requests/User.requests'
 import User from '~/models/schemas/User.schema'
 import databaseService from '~/services/database.services'
+import usersServices from '~/services/users.services'
 
 export const loginController = async (req: Request<ParamsDictionary, any, LoginReqBody>, res: Response) => {
   const user = req.user as User // Lấy ra user từ request
@@ -147,9 +152,76 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
   return
 }
 
-export const updateMeController = async (req: Request, res: Response, next: NextFunction) => {
+// Update me
+export const updateMeController = async (
+  req: Request<ParamsDictionary, any, UpdateMeReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayload
+  const { body } = req // Lấy ra body từ request
+  const user = await usersServices.updateMe(user_id, body)
   res.json({
-    message: 'Update me successful'
+    message: USERS_MESSAGE.UPDATE_ME_SUCCESSFUL,
+    result: user
+  })
+  return
+}
+
+// Get profile
+export const getProfileController = async (req: Request<GetProfileReqParams>, res: Response, next: NextFunction) => {
+  const { username } = req.params // Lấy ra username từ request
+  const user = await usersServices.getProfile(username) // Gọi hàm getProfile
+  res.json({
+    message: USERS_MESSAGE.GET_PROFILE_SUCCESSFUL,
+    result: user
+  })
+  return
+}
+// Follow
+export const followController = async (
+  req: Request<ParamsDictionary, any, FollowReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  // Lấy ra user_id từ decoded_authorization
+  const { user_id } = req.decoded_authorization as TokenPayload
+  // Lấy ra follow_user_id từ request
+  const { follow_user_id } = req.body
+  const result = await usersServices.follow(user_id, follow_user_id)
+  res.json(result)
+  return
+}
+
+// Unfollow
+export const unfollowController = async (req: Request<UnfollowReqParams>, res: Response, next: NextFunction) => {
+  // Lấy ra user_id từ decoded_authorization
+  const { user_id } = req.decoded_authorization as TokenPayload
+  // Lấy ra user_id từ request
+  const { follow_user_id } = req.params
+  const result = await usersServices.unfollow(user_id, follow_user_id)
+  res.json(result)
+  return
+}
+
+// changePassword
+export const changePasswordController = async (req: Request<ParamsDictionary, any, ChangePasswordReqBody>, res: Response, next: NextFunction) => {
+  // Lấy ra user_id từ decoded_authorization
+  const { user_id } = req.decoded_authorization as TokenPayload
+  // Lấy ra body từ request
+  const { password, old_password } = req.body
+  const result = await usersServices.changePassword(user_id, password, old_password)
+  res.json(result)
+  return
+}
+
+export const refreshTokenController = async (req: Request<ParamsDictionary, any, RefreshTokenReqBody>, res: Response, next: NextFunction) => {
+  const { refresh_token } = req.body
+  const { user_id, verify } = req.decoded_refresh_token as TokenPayload
+  const result = await usersServices.refreshToken(user_id, verify, refresh_token)
+  res.json({
+    message: USERS_MESSAGE.REFRESH_TOKEN_SUCCESSFUL,
+    result
   })
   return
 }

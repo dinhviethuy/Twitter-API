@@ -1,3 +1,4 @@
+import { UnfollowReqParams } from './../models/requests/User.requests';
 import { checkSchema, ParamSchema } from 'express-validator'
 import { validate } from '~/utils/validation'
 import usersServices from '~/services/users.services'
@@ -13,6 +14,7 @@ import { NextFunction, Request, Response } from 'express'
 import { ObjectId } from 'mongodb'
 import { TokenPayload } from '~/models/requests/User.requests'
 import { UserVerifyStatus } from '~/constants/enum'
+import { REGEX_USERNAME } from '~/constants/regex'
 
 const passwordSchema: ParamSchema = {
   notEmpty: {
@@ -66,8 +68,10 @@ const confirmPasswordSchema: ParamSchema = {
   },
   custom: {
     errorMessage: USERS_MESSAGE.CONFIRM_PASSWORD_DOES_NOT_MATCH,
-    options: (value, { req }) => { // Kiểm tra confirm_password có trùng với password không
-      if (value !== req.body.password) { // Nếu không trùng thì trả về lỗi
+    options: (value, { req }) => {
+      // Kiểm tra confirm_password có trùng với password không
+      if (value !== req.body.password) {
+        // Nếu không trùng thì trả về lỗi
         throw new Error(USERS_MESSAGE.CONFIRM_PASSWORD_DOES_NOT_MATCH)
       }
       return true
@@ -106,7 +110,8 @@ const forgotPasswordTokenSchema: ParamSchema = {
         }
         req.decoded_forgot_password_token = decoded_forgot_password_token // Gán decoded_forgot_password_token vào req
       } catch (error) {
-        if (error instanceof JsonWebTokenError) { // instanceof để kiểm tra error có phải là JsonWebTokenError không
+        if (error instanceof JsonWebTokenError) {
+          // instanceof để kiểm tra error có phải là JsonWebTokenError không
           throw new ErrorWithStatus({
             message: capitalize(error.message),
             status: HTTP_STATUS.UNAUTHORIZED
@@ -116,6 +121,48 @@ const forgotPasswordTokenSchema: ParamSchema = {
       }
       return true
     }
+  }
+}
+
+const nameSchema: ParamSchema = {
+  notEmpty: {
+    errorMessage: USERS_MESSAGE.NAME_IS_REQUIRED
+  },
+  isString: {
+    errorMessage: USERS_MESSAGE.NAME_MUST_BE_A_STRING
+  },
+  isLength: {
+    options: {
+      min: 1,
+      max: 100
+    },
+    errorMessage: USERS_MESSAGE.NAME_LENGTH_MUST_BE_FROM_1_TO_100
+  },
+  trim: true
+}
+
+const dateOfBirthSchema: ParamSchema = {
+  isISO8601: {
+    options: {
+      strict: true, // Kiểm tra chuẩn ISO8601
+      strictSeparator: true // Kiểm tra dấu phân cách
+    },
+    errorMessage: USERS_MESSAGE.DATE_OF_BIRTH_MUST_BE_ISO8601
+  }
+}
+
+const imageSchema: ParamSchema = {
+  optional: true,
+  isString: {
+    errorMessage: USERS_MESSAGE.IMAGE_MUST_BE_A_STRING
+  },
+  trim: true,
+  isLength: {
+    options: {
+      min: 1,
+      max: 400
+    },
+    errorMessage: USERS_MESSAGE.IMAGE_LENGTH_MUST_BE_FROM_1_TO_400
   }
 }
 
@@ -155,7 +202,8 @@ export const loginValidator = validate(
           },
           errorMessage: USERS_MESSAGE.PASSWORD_LENGTH_MUST_BE_FROM_6_TO_50
         },
-        isStrongPassword: { // Kiểm tra password có đủ mạnh không
+        isStrongPassword: {
+          // Kiểm tra password có đủ mạnh không
           errorMessage: USERS_MESSAGE.PASSWORD_MUST_BE_STRONG,
           options: {
             minLength: 6,
@@ -174,22 +222,7 @@ export const loginValidator = validate(
 export const registerValidator = validate(
   checkSchema(
     {
-      name: {
-        notEmpty: {
-          errorMessage: USERS_MESSAGE.NAME_IS_REQUIRED
-        },
-        isString: {
-          errorMessage: USERS_MESSAGE.NAME_MUST_BE_A_STRING
-        },
-        isLength: {
-          options: {
-            min: 1,
-            max: 100
-          },
-          errorMessage: USERS_MESSAGE.NAME_LENGTH_MUST_BE_FROM_1_TO_100
-        },
-        trim: true
-      },
+      name: nameSchema,
       email: {
         isEmail: {
           errorMessage: USERS_MESSAGE.EMAIL_IS_INVALID
@@ -207,15 +240,7 @@ export const registerValidator = validate(
       },
       password: passwordSchema,
       confirm_password: confirmPasswordSchema,
-      date_of_birth: {
-        isISO8601: {
-          options: {
-            strict: true, // Kiểm tra chuẩn ISO8601
-            strictSeparator: true // Kiểm tra dấu phân cách
-          },
-          errorMessage: USERS_MESSAGE.DATE_OF_BIRTH_MUST_BE_ISO8601
-        }
-      }
+      date_of_birth: dateOfBirthSchema
     },
     ['body']
   )
@@ -261,8 +286,10 @@ export const refreshTokenValidator = validate(
     {
       refresh_token: {
         trim: true,
-        custom: { // custom validator để kiểm tra refresh_token có tồn tại trong database không
-          options: async (value: string, { req }) => { // Kiểm tra refresh_token có tồn tại trong database không
+        custom: {
+          // custom validator để kiểm tra refresh_token có tồn tại trong database không
+          options: async (value: string, { req }) => {
+            // Kiểm tra refresh_token có tồn tại trong database không
             if (!value) {
               throw new ErrorWithStatus({
                 message: USERS_MESSAGE.EMAIL_VERIFY_TOKEN_IS_REQUIRED,
@@ -283,7 +310,8 @@ export const refreshTokenValidator = validate(
               }
               ; (req as Request).decoded_refresh_token = decoded_refresh_token // Gán decoded_refresh_token vào req
             } catch (error) {
-              if (error instanceof JsonWebTokenError) { // instanceof để kiểm tra error có phải là JsonWebTokenError không
+              if (error instanceof JsonWebTokenError) {
+                // instanceof để kiểm tra error có phải là JsonWebTokenError không
                 throw new ErrorWithStatus({
                   message: capitalize(error.message),
                   status: HTTP_STATUS.UNAUTHORIZED
@@ -406,3 +434,190 @@ export const verifiedUserValidator = (req: Request, res: Response, next: NextFun
   // Nếu đã verify thì chuyển đến middleware tiếp theo
   next()
 }
+
+// Dùng để kiểm tra update thông tin của user
+export const updateMeValidator = validate(
+  checkSchema({
+    name: {
+      ...nameSchema,
+      optional: true,
+      notEmpty: undefined
+    },
+    date_of_birth: {
+      ...dateOfBirthSchema,
+      optional: true
+    },
+    bio: {
+      optional: true,
+      isString: {
+        errorMessage: USERS_MESSAGE.BIO_MUST_BE_A_STRING
+      },
+      trim: true,
+      isLength: {
+        options: {
+          min: 1,
+          max: 200
+        },
+        errorMessage: USERS_MESSAGE.BIO_LENGTH_MUST_BE_FROM_1_TO_200
+      }
+    },
+    location: {
+      optional: true,
+      isString: {
+        errorMessage: USERS_MESSAGE.LOCATION_MUST_BE_A_STRING
+      },
+      trim: true,
+      isLength: {
+        options: {
+          min: 1,
+          max: 200
+        },
+        errorMessage: USERS_MESSAGE.LOCATION_LENGTH_MUST_BE_FROM_1_TO_200
+      }
+    },
+    website: {
+      optional: true,
+      trim: true,
+      isString: {
+        errorMessage: USERS_MESSAGE.WEBSITE_MUST_BE_A_STRING
+      },
+      isLength: {
+        options: {
+          min: 1,
+          max: 100
+        },
+        errorMessage: USERS_MESSAGE.WEBSITE_LENGTH_MUST_BE_FROM_1_TO_100
+      }
+    },
+    username: {
+      optional: true,
+      isString: {
+        errorMessage: USERS_MESSAGE.USER_NAME_MUST_BE_A_STRING
+      },
+      trim: true,
+      custom: {
+        options: async (value, { req }) => {
+          // Kiểm tra username có hợp lệ không
+          if (!REGEX_USERNAME.test(value)) {
+            throw new Error(USERS_MESSAGE.USER_NAME_IS_INVALID_OR_EXISTS)
+          }
+          // Kiểm tra username đã tồn tại trong database chưa
+          const user = await databaseService.users.findOne({ username: value })
+          // NẾu user đã tồn tại
+          if (user) {
+            throw new Error(USERS_MESSAGE.USER_NAME_EXISTED)
+          }
+        }
+      }
+    },
+    avatar: imageSchema,
+    cover_photo: imageSchema
+  })
+)
+
+export const followValidator = validate(
+  checkSchema({
+    follow_user_id: {
+      custom: {
+        options: async (value: string, { req }) => {
+          if (!ObjectId.isValid(value)) {
+            throw new ErrorWithStatus({
+              message: USERS_MESSAGE.INVALID_FOLLOW_USER_ID,
+              status: HTTP_STATUS.NOT_FOUND
+            })
+          }
+          const followed_user = await databaseService.users.findOne({ _id: new ObjectId(value) })
+          if (!followed_user) {
+            throw new ErrorWithStatus({
+              message: USERS_MESSAGE.FOLLOW_USER_NOT_FOUND,
+              status: HTTP_STATUS.NOT_FOUND
+            })
+          }
+          const { user_id } = req.decoded_authorization as TokenPayload
+          if (user_id === value) {
+            throw new ErrorWithStatus({
+              message: USERS_MESSAGE.NOT_FOLLOW_YOURSELF,
+              status: HTTP_STATUS.BAD_REQUEST
+            })
+          }
+        }
+      }
+    }
+  }, ['body'])
+)
+
+export const unfollowValidator = validate(
+  checkSchema(
+    {
+      user_id: {
+        custom: {
+          options: async (value: string, { req }) => {
+            const { user_id } = req.decoded_authorization as TokenPayload
+            const { follow_user_id } = req.params as UnfollowReqParams
+            if (user_id === follow_user_id) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGE.NOT_UNFOLLOW_YOURSELF,
+                status: HTTP_STATUS.BAD_REQUEST
+              })
+            }
+            if (!ObjectId.isValid(follow_user_id)) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGE.INVALID_UNFOLLOW_USER_ID,
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            const followed_user = await databaseService.users.findOne({ _id: new ObjectId(follow_user_id) })
+            if (!followed_user) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGE.UNFOLLOW_USER_NOT_FOUND,
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            const isFollowing = await databaseService.followers.findOne({
+              user_id: new ObjectId(user_id),
+              follow_user_id: new ObjectId(follow_user_id)
+            })
+            if (!isFollowing) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGE.NOT_FOLLOWED_USER,
+                status: HTTP_STATUS.BAD_REQUEST
+              })
+            }
+          }
+        }
+      }
+    },
+    ['params']
+  )
+)
+
+export const changePasswordValidator = validate(
+  checkSchema(
+    {
+      password: passwordSchema,
+      confirm_password: confirmPasswordSchema,
+      old_password: {
+        ...passwordSchema,
+        custom: {
+          options: async (value: string, { req }) => {
+            const { user_id } = req.decoded_authorization as TokenPayload
+            const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+            if (!user) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGE.USER_NOT_FOUND,
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            const { password } = user
+            if (password !== hashPassword(value)) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGE.OLD_PASSWORD_NOT_MATCH,
+                status: HTTP_STATUS.BAD_REQUEST
+              })
+            }
+          }
+        }
+      }
+    }
+  )
+)

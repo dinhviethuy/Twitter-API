@@ -10,19 +10,30 @@ import {
   verifyForgotPasswordTokenController,
   resetPasswordController,
   getMeController,
-  updateMeController
+  updateMeController,
+  getProfileController,
+  followController,
+  unfollowController,
+  changePasswordController,
+  refreshTokenController
 } from '~/controllers/users.controllers'
+import { filterMiddleware } from '~/middlewares/common.middlewares'
 import {
   accessTokenValidator,
+  changePasswordValidator,
   emailVerifyTokenValidator,
+  followValidator,
   forgotPasswordValidator,
   loginValidator,
   refreshTokenValidator,
   registerValidator,
   resetPasswordValidator,
+  unfollowValidator,
+  updateMeValidator,
   verifiedUserValidator,
   verifyForgotPasswordTokenValidator
 } from '~/middlewares/users.middlewares'
+import { UpdateMeReqBody } from '~/models/requests/User.requests'
 import { wrapRequestHandler } from '~/utils/handlers'
 
 // Tạo router cho users
@@ -52,6 +63,14 @@ usersRouter.post('/register', registerValidator, wrapRequestHandler(registerCont
  * Body: { refresh_token: string }
  */
 usersRouter.post('/logout', accessTokenValidator, refreshTokenValidator, wrapRequestHandler(logoutController))
+
+/**
+ * Description: Refresh token
+ * Path: /refresh-token
+ * Method: POST
+ * Body: { refresh_token: string }
+ */
+usersRouter.post('/refresh-token', refreshTokenValidator, wrapRequestHandler(refreshTokenController))
 
 /**
  * Description: Verify email
@@ -113,6 +132,56 @@ usersRouter.get('/me', accessTokenValidator, wrapRequestHandler(getMeController)
  * Headers: { Authorization: Bearer token }
  * Body: UserSchema
  */
-usersRouter.patch('/me', accessTokenValidator, verifiedUserValidator, wrapRequestHandler(updateMeController))
+usersRouter.patch(
+  '/me',
+  accessTokenValidator,
+  verifiedUserValidator,
+  updateMeValidator,
+  filterMiddleware<UpdateMeReqBody>([
+    'name',
+    'date_of_birth',
+    'location',
+    'bio',
+    'avatar',
+    'cover_photo',
+    'website',
+    'username'
+  ]),
+  wrapRequestHandler(updateMeController)
+)
+
+/**
+ * Description: Get profile by username
+ * Path: /:username
+ * Method: GET
+ */
+
+usersRouter.get('/:username', wrapRequestHandler(getProfileController))
+
+/**
+ * Description: Follow a user
+ * Path: /follow
+ * Method: POST
+ * Headers: { Authorization: Bearer token }
+ * Body: { follow_user_id: string }
+ */
+usersRouter.post('/follow', accessTokenValidator, verifiedUserValidator, followValidator, wrapRequestHandler(followController))
+
+/**
+ * Description: Unfollow a user
+ * Path: /follow/user_id
+ * Method: DELETE
+ * Headers: { Authorization: Bearer token }
+ */
+usersRouter.delete('/follow/:follow_user_id', accessTokenValidator, verifiedUserValidator, unfollowValidator, wrapRequestHandler(unfollowController))
+
+/**
+ * Description: Change password
+ * Path: /change-password
+ * Method: PUT
+ * Headers: { Authorization: Bearer token }
+ * Body: { old_password, password: string, confirm_password: string }
+ */
+usersRouter.put('/change-password', accessTokenValidator, verifiedUserValidator, changePasswordValidator, wrapRequestHandler(changePasswordController))
 
 export default usersRouter
