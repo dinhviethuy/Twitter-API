@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false
+  },
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "files": ["src/types/type.d.ts"]
+}
