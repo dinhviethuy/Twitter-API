@@ -5,13 +5,15 @@ import { RegisterReqBody, UpdateMeReqBody } from '~/models/requests/User.request
 import { hashPassword } from '~/utils/crypto'
 import { signToken } from '~/utils/jwt'
 import { TokenType, UserVerifyStatus } from '~/constants/enum'
-import { ModifyResult, ObjectId, WithId } from 'mongodb'
+import { ObjectId } from 'mongodb'
 import RefreshToken from '~/models/schemas/RefreshToken.schema'
 import { config } from 'dotenv'
 import { USERS_MESSAGE } from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
 import Follower from '~/models/schemas/Follower.schema'
+import axios from 'axios'
+import generator from 'generate-password'
 
 // Đọc biến môi trường
 config()
@@ -77,6 +79,48 @@ class UsersService {
   // Tạo access_token và refresh_token
   private signAccessAndRefreshToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return Promise.all([this.signAccessToken({ user_id, verify }), this.signRefreshToken({ user_id, verify })])
+  }
+  // Đăng nhập bằng google
+  private async getOauthGoogleToken(code: string) {
+    const body = {
+      code, // code từ google
+      client_id: process.env.GOOGLE_CLIENT_ID, // client_id
+      client_secret: process.env.GOOGLE_CLIENT_SECRET, // client_secret
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI, // redirect_uri
+      grant_type: 'authorization_code' // grant_type
+    }
+    const { data } = await axios.post('https://oauth2.googleapis.com/token', body, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+    return data as {
+      id_token: string
+      access_token: string
+    }
+  }
+  // Lấy thông tin user từ google
+  private async getGoogleUserInfo(access_token: string, id_token: string) {
+    const { data } = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+      params: {
+        access_token,
+        alt: 'json',
+        id_token
+      },
+      headers: {
+        Authorization: `Bearer ${id_token}`
+      }
+    })
+    return data as {
+      id: string
+      email: string
+      verified_email: boolean
+      name: string
+      given_name: string
+      family_name: string
+      picture: string
+      locale: string
+    }
   }
   // Đăng ký tài khoản
   async register(payload: RegisterReqBody) {
@@ -167,7 +211,9 @@ class UsersService {
       )
     ])
     const [access_token, refresh_token] = token
-    await databaseService.refreshTokens.insertOne(new RefreshToken({ user_id: new ObjectId(user_id), token: refresh_token }))
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({ user_id: new ObjectId(user_id), token: refresh_token })
+    )
     return {
       access_token,
       refresh_token
@@ -309,10 +355,12 @@ class UsersService {
         message: USERS_MESSAGE.USER_ALREADY_FOLLOWED
       }
     }
-    await databaseService.followers.insertOne(new Follower({
-      user_id: new ObjectId(user_id),
-      follow_user_id: new ObjectId(follow_user_id)
-    }))
+    await databaseService.followers.insertOne(
+      new Follower({
+        user_id: new ObjectId(user_id),
+        follow_user_id: new ObjectId(follow_user_id)
+      })
+    )
     return {
       message: USERS_MESSAGE.FOLLOW_SUCCESSFUL
     }
@@ -359,10 +407,60 @@ class UsersService {
       this.signRefreshToken({ user_id, verify }),
       databaseService.refreshTokens.deleteOne({ token: refresh_token_old })
     ])
-    await databaseService.refreshTokens.insertOne(new RefreshToken({ user_id: new ObjectId(user_id), token: refresh_token }))
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({ user_id: new ObjectId(user_id), token: refresh_token })
+    )
     return {
       access_token,
       refresh_token
+    }
+  }
+  //oAuth Google
+  async oauthGoogle(code: string) {
+    const { id_token, access_token } = await this.getOauthGoogleToken(code)
+    const userInfo = await this.getGoogleUserInfo(access_token, id_token)
+    if (!userInfo.verified_email) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGE.GMAIL_NOT_VERIFIED,
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+    // Kiểm tra email đã tồn tại trong database hay chưa
+    const user = await databaseService.users.findOne({ email: userInfo.email })
+    if (user) {
+      // Nếu email đã tồn tại thì login vào hệ thống
+      const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
+        user_id: user._id.toString(),
+        verify: user.verify
+      })
+      await databaseService.refreshTokens.insertOne(
+        new RefreshToken({ user_id: new ObjectId(user._id), token: refresh_token })
+      )
+      return {
+        access_token,
+        refresh_token,
+        new_user: false
+      }
+    } else {
+      const password = generator.generate({
+        length: 25,
+        numbers: true,
+        symbols: true,
+        lowercase: true,
+        uppercase: true
+      })
+      const { access_token, refresh_token } = await this.register({
+        email: userInfo.email,
+        name: userInfo.name,
+        password: password,
+        confirm_password: password,
+        date_of_birth: new Date().toISOString()
+      })
+      return {
+        access_token,
+        refresh_token,
+        new_user: true
+      }
     }
   }
 }

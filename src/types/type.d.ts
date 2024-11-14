@@ -20,4 +20,3 @@ declare module 'express-serve-static-core' {
     follow_user_id: string
   }
 }
-

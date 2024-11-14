@@ -1,4 +1,4 @@
-import { ParamsDictionary } from 'express-serve-static-core';
+import { ParamsDictionary } from 'express-serve-static-core'
 import { JwtPayload } from 'jsonwebtoken'
 import { TokenType, UserVerifyStatus } from '~/constants/enum'
 
@@ -67,8 +67,8 @@ export interface UnfollowReqParams extends ParamsDictionary {
 }
 
 export interface ChangePasswordReqBody {
-  old_password: string,
-  password: string,
+  old_password: string
+  password: string
   confirm_password: string
 }
 

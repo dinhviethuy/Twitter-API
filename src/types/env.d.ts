@@ -18,5 +18,9 @@ declare namespace NodeJS {
     DB_COLLECTION_REFRESH_TOKENS: string
     DB_PORT: number
     DB_COLLECTION_FOLLOWERS: string
+    GOOGLE_CLIENT_ID: string
+    GOOGLE_CLIENT_SECRET: string
+    GOOGLE_REDIRECT_URI: string
+    CLIENT_REDIRECT_URI: string
   }
 }

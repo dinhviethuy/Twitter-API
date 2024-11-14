@@ -1,5 +1,5 @@
 import { RequestHandler, Router } from 'express'
-import { update } from 'lodash'
+
 import {
   verifyEmailController,
   loginController,
@@ -15,7 +15,8 @@ import {
   followController,
   unfollowController,
   changePasswordController,
-  refreshTokenController
+  refreshTokenController,
+  oauthGoogleController
 } from '~/controllers/users.controllers'
 import { filterMiddleware } from '~/middlewares/common.middlewares'
 import {
@@ -47,6 +48,16 @@ const usersRouter = Router()
  */
 // Đăng ký middleware cho route /login
 usersRouter.post('/login', loginValidator, wrapRequestHandler(loginController))
+
+/**
+ * Description: Login a user with Google OAuth
+ * Path: /users/oauth/google
+ * Method: GET
+ * Body: { email: string, password: string }
+ */
+// Đăng ký middleware cho route /login
+usersRouter.get('/oauth/google', wrapRequestHandler(oauthGoogleController))
+
 /**
  * Description: Register a new user
  * Path: /register
@@ -165,7 +176,13 @@ usersRouter.get('/:username', wrapRequestHandler(getProfileController))
  * Headers: { Authorization: Bearer token }
  * Body: { follow_user_id: string }
  */
-usersRouter.post('/follow', accessTokenValidator, verifiedUserValidator, followValidator, wrapRequestHandler(followController))
+usersRouter.post(
+  '/follow',
+  accessTokenValidator,
+  verifiedUserValidator,
+  followValidator,
+  wrapRequestHandler(followController)
+)
 
 /**
  * Description: Unfollow a user
@@ -173,7 +190,13 @@ usersRouter.post('/follow', accessTokenValidator, verifiedUserValidator, followV
  * Method: DELETE
  * Headers: { Authorization: Bearer token }
  */
-usersRouter.delete('/follow/:follow_user_id', accessTokenValidator, verifiedUserValidator, unfollowValidator, wrapRequestHandler(unfollowController))
+usersRouter.delete(
+  '/follow/:follow_user_id',
+  accessTokenValidator,
+  verifiedUserValidator,
+  unfollowValidator,
+  wrapRequestHandler(unfollowController)
+)
 
 /**
  * Description: Change password
@@ -182,6 +205,12 @@ usersRouter.delete('/follow/:follow_user_id', accessTokenValidator, verifiedUser
  * Headers: { Authorization: Bearer token }
  * Body: { old_password, password: string, confirm_password: string }
  */
-usersRouter.put('/change-password', accessTokenValidator, verifiedUserValidator, changePasswordValidator, wrapRequestHandler(changePasswordController))
+usersRouter.put(
+  '/change-password',
+  accessTokenValidator,
+  verifiedUserValidator,
+  changePasswordValidator,
+  wrapRequestHandler(changePasswordController)
+)
 
 export default usersRouter

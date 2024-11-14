@@ -1,6 +1,7 @@
-import { ChangePasswordReqBody, RefreshTokenReqBody } from './../models/requests/User.requests';
+import { config } from 'dotenv'
+import { ChangePasswordReqBody, RefreshTokenReqBody } from './../models/requests/User.requests'
 import { NextFunction, Request, Response } from 'express'
-import { ParamsDictionary, RequestHandler } from 'express-serve-static-core'
+import { ParamsDictionary } from 'express-serve-static-core'
 import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '~/constants/enum'
 import HTTP_STATUS from '~/constants/httpStatus'
@@ -22,6 +23,8 @@ import {
 import User from '~/models/schemas/User.schema'
 import databaseService from '~/services/database.services'
 import usersServices from '~/services/users.services'
+
+config()
 
 export const loginController = async (req: Request<ParamsDictionary, any, LoginReqBody>, res: Response) => {
   const user = req.user as User // Lấy ra user từ request
@@ -205,7 +208,11 @@ export const unfollowController = async (req: Request<UnfollowReqParams>, res: R
 }
 
 // changePassword
-export const changePasswordController = async (req: Request<ParamsDictionary, any, ChangePasswordReqBody>, res: Response, next: NextFunction) => {
+export const changePasswordController = async (
+  req: Request<ParamsDictionary, any, ChangePasswordReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
   // Lấy ra user_id từ decoded_authorization
   const { user_id } = req.decoded_authorization as TokenPayload
   // Lấy ra body từ request
@@ -215,7 +222,12 @@ export const changePasswordController = async (req: Request<ParamsDictionary, an
   return
 }
 
-export const refreshTokenController = async (req: Request<ParamsDictionary, any, RefreshTokenReqBody>, res: Response, next: NextFunction) => {
+// refreshToken
+export const refreshTokenController = async (
+  req: Request<ParamsDictionary, any, RefreshTokenReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
   const { refresh_token } = req.body
   const { user_id, verify } = req.decoded_refresh_token as TokenPayload
   const result = await usersServices.refreshToken(user_id, verify, refresh_token)
@@ -223,5 +235,14 @@ export const refreshTokenController = async (req: Request<ParamsDictionary, any,
     message: USERS_MESSAGE.REFRESH_TOKEN_SUCCESSFUL,
     result
   })
+  return
+}
+
+// oauthGoogle
+export const oauthGoogleController = async (req: Request, res: Response, next: NextFunction) => {
+  const { code } = req.query
+  const result = await usersServices.oauthGoogle(code as string)
+  const urlRedirect = `${process.env.CLIENT_REDIRECT_URI}?access_token=${result.access_token}&refresh_token=${result.refresh_token}&new_user=${result.new_user}`
+  res.redirect(urlRedirect)
   return
 }
