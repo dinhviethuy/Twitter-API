@@ -53,7 +53,6 @@ usersRouter.post('/login', loginValidator, wrapRequestHandler(loginController))
  * Description: Login a user with Google OAuth
  * Path: /users/oauth/google
  * Method: GET
- * Body: { email: string, password: string }
  */
 // Đăng ký middleware cho route /login
 usersRouter.get('/oauth/google', wrapRequestHandler(oauthGoogleController))
