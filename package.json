@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "npx nodemon",
+    "dev": "npx nodemon --development",
     "build": "rimraf ./dist && tsc && tsc-alias",
-    "start": "node dist/index.js",
+    "start": "node dist/index.js --production",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prettier": "prettier --check .",
@@ -17,7 +17,9 @@
   "license": "ISC",
   "devDependencies": {
     "@types/express": "^5.0.0",
+    "@types/formidable": "^3.4.5",
     "@types/lodash": "^4.17.13",
+    "@types/minimist": "^1.2.5",
     "@types/node": "^20.2.5",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
@@ -38,9 +40,12 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "express-validator": "^7.2.0",
+    "formidable": "^3.5.2",
     "generate-password": "^1.7.1",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
-    "mongodb": "^6.10.0"
+    "minimist": "^1.2.8",
+    "mongodb": "^6.10.0",
+    "sharp": "^0.33.5"
   }
 }

@@ -71,5 +71,7 @@ export const USERS_MESSAGE = {
   CHANGE_PASSWORD_SUCCESSFUL: 'Change password successful',
   PASSWORD_NEW_MUST_BE_DIFFERENT_PASSWORD_OLD: 'Password new must be different password old',
   REFRESH_TOKEN_SUCCESSFUL: 'Refresh token successful',
-  GMAIL_NOT_VERIFIED: 'Gmail not verified'
+  GMAIL_NOT_VERIFIED: 'Gmail not verified',
+  UPLOAD_SUCCESS: 'Upload success',
+  IMAGE_NOT_FOUND: 'Image not found'
 } as const

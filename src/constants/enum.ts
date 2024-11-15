@@ -11,3 +11,8 @@ export enum TokenType {
   ForgotPasswordToken, // token dùng để xác thực quên mật khẩu
   EmailVerifyToken // token dùng để xác thực email
 }
+
+export enum MediaType {
+  Image,
+  Video
+}

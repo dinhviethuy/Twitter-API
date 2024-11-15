@@ -22,5 +22,6 @@ declare namespace NodeJS {
     GOOGLE_CLIENT_SECRET: string
     GOOGLE_REDIRECT_URI: string
     CLIENT_REDIRECT_URI: string
+    HOST: string
   }
 }

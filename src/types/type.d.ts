@@ -18,5 +18,6 @@ declare module 'express-serve-static-core' {
   interface ParamsDictionary {
     username: string
     follow_user_id: string
+    name: string
   }
 }

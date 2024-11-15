@@ -75,3 +75,7 @@ export interface ChangePasswordReqBody {
 export interface RefreshTokenReqBody {
   refresh_token: string
 }
+
+export interface StaticReqParams extends ParamsDictionary {
+  name: string
+}
